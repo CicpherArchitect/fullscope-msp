@@ -1,11 +1,11 @@
 [build]
   command = "npm run build"
   publish = "dist"
-  functions = ".netlify/functions"
+  functions = "netlify/functions"
 
 [[redirects]]
-  from = "/.netlify/functions/*"
-  to = "/.netlify/functions/:splat"
+  from = "/api/functions/*"
+  to = "/api/functions/:splat"
   status = 200
   force = true
 

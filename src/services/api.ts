@@ -18,7 +18,7 @@ export async function submitContactForm(formData: FormData): Promise<ApiResponse
   try {
     console.log('Submitting form data:', formData);
 
-    const response = await fetch('/.netlify/functions/create-lead', {
+    const response = await fetch('/api/functions/create-lead', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
