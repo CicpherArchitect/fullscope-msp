@@ -1,0 +1,9 @@
+{
+  "name": "fullscope-msp-functions",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@netlify/functions": "^2.6.0",
+    "axios": "^1.6.7"
+  }
+}
