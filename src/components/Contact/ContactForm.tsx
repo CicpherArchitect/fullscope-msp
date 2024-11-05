@@ -30,20 +30,28 @@ export function ContactForm() {
         throw new ApiError('Please select at least one service of interest');
       }
 
-      const result = await submitContactForm(formData);
-      
-      if (result.success) {
-        setSubmitStatus('success');
-        setFormData(initialFormData);
+      const response = await fetch('/.netlify/functions/create-lead', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
 
-        if (result.redirectUrl) {
-          const redirectUrl = result.redirectUrl || '';
-          setTimeout(() => {
-            window.location.href = redirectUrl;
-          }, 1500);
-        }
-      } else {
-        throw new ApiError(result.error || 'Failed to submit form');
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new ApiError(result.error || 'Failed to submit form', result.details);
+      }
+
+      setSubmitStatus('success');
+      setFormData(initialFormData);
+
+      const redirectUrl = result.redirectUrl || '';
+      if (redirectUrl) {
+        setTimeout(() => {
+          window.location.href = redirectUrl;
+        }, 1500);
       }
     } catch (error) {
       console.error('Error submitting form:', error);
