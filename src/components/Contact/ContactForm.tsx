@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ServiceCheckboxes } from './ServiceCheckboxes';
 import { FormStatus } from './FormStatus';
-import { submitContactForm, ApiError } from '../../services/api';
+import { ApiError } from '../../services/api';
 import type { FormData } from './types';
 
 const initialFormData: FormData = {
