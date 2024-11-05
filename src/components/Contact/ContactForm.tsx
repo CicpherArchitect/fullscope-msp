@@ -37,8 +37,9 @@ export function ContactForm() {
         setFormData(initialFormData);
 
         if (result.redirectUrl) {
+          const redirectUrl = result.redirectUrl || '';
           setTimeout(() => {
-            window.location.href = result.redirectUrl;
+            window.location.href = redirectUrl;
           }, 1500);
         }
       } else {
