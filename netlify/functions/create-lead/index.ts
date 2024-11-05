@@ -1,4 +1,4 @@
-import type { Handler } from '@netlify/functions';
+import { Handler } from '@netlify/functions';
 import axios from 'axios';
 
 const SALESMATE_API_URL = 'https://fullscopemsp.salesmate.io/apis/v3';
@@ -33,7 +33,7 @@ const validateLeadData = (data: any): data is LeadData => {
   );
 };
 
-export const handler: Handler = async (event) => {
+const handler: Handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { 
       statusCode: 204, 
@@ -171,3 +171,5 @@ export const handler: Handler = async (event) => {
     };
   }
 };
+
+export { handler };
