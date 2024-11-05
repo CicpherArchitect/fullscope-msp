@@ -33,7 +33,7 @@ const validateLeadData = (data: any): data is LeadData => {
   );
 };
 
-const handler: Handler = async (event) => {
+export const handler: Handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { 
       statusCode: 204, 
@@ -171,5 +171,3 @@ const handler: Handler = async (event) => {
     };
   }
 };
-
-export { handler };
