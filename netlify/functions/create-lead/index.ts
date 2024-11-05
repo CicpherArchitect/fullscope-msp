@@ -1,5 +1,5 @@
-import { Handler } from '@netlify/functions';
-import axios, { AxiosError } from 'axios';
+import type { Handler } from '@netlify/functions';
+import axios from 'axios';
 
 const SALESMATE_API_URL = 'https://fullscopemsp.salesmate.io/apis/v3';
 const ACCESS_KEY = process.env.SALESMATE_API_KEY;
@@ -22,7 +22,6 @@ const headers = {
 };
 
 const validateLeadData = (data: any): data is LeadData => {
-  console.log('Validating lead data structure:', data);
   return (
     typeof data === 'object' &&
     typeof data.firstName === 'string' &&
@@ -35,14 +34,8 @@ const validateLeadData = (data: any): data is LeadData => {
 };
 
 export const handler: Handler = async (event) => {
-  // Log incoming request
-  console.log('Request method:', event.httpMethod);
-  console.log('Request headers:', event.headers);
-  console.log('Raw request body:', event.body);
-
   // Handle preflight requests
   if (event.httpMethod === 'OPTIONS') {
-    console.log('Handling OPTIONS request');
     return { 
       statusCode: 204, 
       headers 
@@ -51,7 +44,6 @@ export const handler: Handler = async (event) => {
 
   // Ensure POST method
   if (event.httpMethod !== 'POST') {
-    console.log('Invalid method:', event.httpMethod);
     return {
       statusCode: 405,
       headers,
@@ -75,40 +67,20 @@ export const handler: Handler = async (event) => {
   try {
     // Validate request body
     if (!event.body) {
-      console.error('Empty request body');
       throw new Error('Request body is required');
     }
 
     // Parse request body
-    let leadData: LeadData;
-    try {
-      console.log('Attempting to parse request body');
-      leadData = JSON.parse(event.body);
-      console.log('Successfully parsed lead data:', leadData);
-    } catch (parseError) {
-      console.error('JSON parse error:', parseError);
-      console.error('Raw body that failed to parse:', event.body);
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({
-          error: 'Invalid JSON format',
-          details: parseError instanceof Error ? parseError.message : 'Failed to parse request body',
-          rawBody: event.body // Include raw body in response for debugging
-        })
-      };
-    }
+    const leadData: LeadData = JSON.parse(event.body);
 
     // Validate data structure
     if (!validateLeadData(leadData)) {
-      console.error('Invalid data structure:', leadData);
       return {
         statusCode: 400,
         headers,
         body: JSON.stringify({
           error: 'Invalid data format',
-          details: 'Request body missing required fields or has invalid types',
-          receivedData: leadData
+          details: 'Request body missing required fields or has invalid types'
         })
       };
     }
@@ -118,7 +90,6 @@ export const handler: Handler = async (event) => {
     const missingFields = requiredFields.filter(field => !leadData[field as keyof LeadData]);
 
     if (missingFields.length > 0) {
-      console.error('Missing required fields:', missingFields);
       return {
         statusCode: 400,
         headers,
@@ -132,7 +103,6 @@ export const handler: Handler = async (event) => {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(leadData.email)) {
-      console.error('Invalid email format:', leadData.email);
       return {
         statusCode: 400,
         headers,
@@ -144,7 +114,6 @@ export const handler: Handler = async (event) => {
 
     // Validate services array
     if (!leadData.services.length) {
-      console.error('Empty services array');
       return {
         statusCode: 400,
         headers,
@@ -167,8 +136,6 @@ export const handler: Handler = async (event) => {
       status: 'New'
     };
 
-    console.log('Sending to Salesmate:', JSON.stringify(salesmateData, null, 2));
-
     // Send to Salesmate
     const response = await axios.post(
       `${SALESMATE_API_URL}/leads/add`,
@@ -183,34 +150,25 @@ export const handler: Handler = async (event) => {
       }
     );
 
-    console.log('Salesmate response:', response.data);
-
-    const successResponse = {
-      success: true,
-      data: response.data,
-      redirectUrl: 'https://outlook.office365.com/owa/calendar/FullScopeDiscoveryCall@fullscopemsp.com/bookings/'
-    };
-
-    console.log('Sending success response:', successResponse);
-
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify(successResponse)
+      body: JSON.stringify({
+        success: true,
+        data: response.data,
+        redirectUrl: 'https://outlook.office365.com/owa/calendar/FullScopeDiscoveryCall@fullscopemsp.com/bookings/'
+      })
     };
   } catch (error) {
     console.error('Error creating lead:', error);
-    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace available');
 
     if (axios.isAxiosError(error)) {
-      const axiosError = error as AxiosError;
-      console.error('Axios error response:', axiosError.response?.data);
       return {
-        statusCode: axiosError.response?.status || 500,
+        statusCode: error.response?.status || 500,
         headers,
         body: JSON.stringify({
           error: 'Failed to create lead in Salesmate',
-          details: axiosError.response?.data || axiosError.message
+          details: error.response?.data || error.message
         })
       };
     }
@@ -220,8 +178,7 @@ export const handler: Handler = async (event) => {
       headers,
       body: JSON.stringify({
         error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'An unexpected error occurred',
-        stack: error instanceof Error ? error.stack : undefined
+        details: error instanceof Error ? error.message : 'An unexpected error occurred'
       })
     };
   }
