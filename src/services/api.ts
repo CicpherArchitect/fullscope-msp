@@ -5,6 +5,7 @@ interface ApiResponse {
   data?: any;
   error?: string;
   redirectUrl?: string;
+  details?: any;
 }
 
 export class ApiError extends Error {

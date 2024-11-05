@@ -1,4 +1,4 @@
-import { Shield, Server, Bell, FileSearch, Cloud, Users, Monitor, Lock, Phone, Database, Key, AlertTriangle, Code, Globe, Cog, Search, HardDrive, FileCode } from 'lucide-react';
+import { Shield, FileSearch, Monitor, Lock, Phone, Database, Key, AlertTriangle, Code, Globe, Cog, Search, HardDrive, FileCode } from 'lucide-react';
 
 export function Services() {
   const serviceCategories = [
