@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "postinstall": "cd netlify/functions && npm install"
   },
   "dependencies": {
     "@netlify/functions": "^2.6.0",
