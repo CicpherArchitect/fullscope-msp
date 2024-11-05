@@ -11,7 +11,7 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "coverage": "vitest run --coverage",
-    "postinstall": "cd netlify/functions && npm install"
+    "postinstall": "cd netlify/functions/create-lead && npm install"
   },
   "dependencies": {
     "@netlify/functions": "^2.6.0",

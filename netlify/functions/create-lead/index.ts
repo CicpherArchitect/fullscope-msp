@@ -16,7 +16,7 @@ interface LeadData {
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type, Accept',
+  'Access-Control-Allow-Headers': 'Content-Type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Content-Type': 'application/json'
 };
@@ -34,7 +34,6 @@ const validateLeadData = (data: any): data is LeadData => {
 };
 
 export const handler: Handler = async (event) => {
-  // Handle preflight requests
   if (event.httpMethod === 'OPTIONS') {
     return { 
       statusCode: 204, 
@@ -42,7 +41,6 @@ export const handler: Handler = async (event) => {
     };
   }
 
-  // Ensure POST method
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
@@ -51,9 +49,7 @@ export const handler: Handler = async (event) => {
     };
   }
 
-  // Validate API credentials
   if (!ACCESS_KEY || !SECRET_KEY) {
-    console.error('Missing API credentials');
     return {
       statusCode: 500,
       headers,
@@ -65,15 +61,12 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    // Validate request body
     if (!event.body) {
       throw new Error('Request body is required');
     }
 
-    // Parse request body
     const leadData: LeadData = JSON.parse(event.body);
 
-    // Validate data structure
     if (!validateLeadData(leadData)) {
       return {
         statusCode: 400,
@@ -85,7 +78,6 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // Validate required fields
     const requiredFields = ['firstName', 'lastName', 'company', 'email', 'message', 'services'];
     const missingFields = requiredFields.filter(field => !leadData[field as keyof LeadData]);
 
@@ -100,7 +92,6 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(leadData.email)) {
       return {
@@ -112,7 +103,6 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // Validate services array
     if (!leadData.services.length) {
       return {
         statusCode: 400,
@@ -124,7 +114,6 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // Prepare data for Salesmate
     const salesmateData = {
       owner_id: 1,
       first_name: leadData.firstName.trim(),
@@ -136,7 +125,6 @@ export const handler: Handler = async (event) => {
       status: 'New'
     };
 
-    // Send to Salesmate
     const response = await axios.post(
       `${SALESMATE_API_URL}/leads/add`,
       salesmateData,
