@@ -30,7 +30,7 @@ export function ContactForm() {
         throw new ApiError('Please select at least one service of interest');
       }
 
-      const response = await fetch('/.netlify/functions/create-lead', {
+      const response = await fetch('/netlify/functions/create-lead', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
