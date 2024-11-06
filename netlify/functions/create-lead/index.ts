@@ -1,7 +1,7 @@
 import { Handler } from '@netlify/functions';
 import axios from 'axios';
 
-const SALESMATE_API_URL = 'https://fullscopemsp.salesmate.io/apis/v4';
+const SALESMATE_BASE_URL = 'https://fullscopemsp.salesmate.io/apis';
 const ACCESS_KEY = process.env.SALESMATE_API_KEY;
 const SECRET_KEY = process.env.SALESMATE_SECRET_KEY;
 
@@ -12,6 +12,11 @@ interface LeadData {
   email: string;
   message: string;
   services: string[];
+}
+
+interface SalesmateCompany {
+  id: number;
+  name: string;
 }
 
 const headers = {
@@ -33,14 +38,69 @@ const validateLeadData = (data: any): data is LeadData => {
   );
 };
 
+const salesmateHeaders = {
+  'accesskey': ACCESS_KEY,
+  'secretkey': SECRET_KEY,
+  'Content-Type': 'application/json'
+};
+
+async function findCompany(companyName: string): Promise<SalesmateCompany | null> {
+  try {
+    const response = await axios.get(
+        `${SALESMATE_BASE_URL}/company/v4/search?name=${encodeURIComponent(companyName)}`,
+        { headers: salesmateHeaders }
+    );
+
+    const companies = response.data;
+    return companies.length > 0 ? companies[0] : null;
+  } catch (error) {
+    console.error('Error searching for company:', error);
+    return null;
+  }
+}
+
+async function createCompany(companyName: string): Promise<SalesmateCompany> {
+  const response = await axios.post(
+      `${SALESMATE_BASE_URL}/company/v4`,
+      {
+        name: companyName,
+        owner: 1,
+        type: 'Lead'
+      },
+      { headers: salesmateHeaders }
+  );
+
+  return response.data;
+}
+
+async function createContact(data: LeadData, companyId: number) {
+  const contactData = {
+    firstName: data.firstName,
+    lastName: data.lastName,
+    email: data.email,
+    type: 'Lead',
+    company: companyId,
+    owner: 1,
+    description: data.message,
+    tags: data.services.join(','),
+    emailOptOut: false,
+    smsOptOut: false
+  };
+
+  const response = await axios.post(
+      `${SALESMATE_BASE_URL}/contact/v4`,
+      contactData,
+      { headers: salesmateHeaders }
+  );
+
+  return response.data;
+}
+
 export const handler: Handler = async (event) => {
   try {
     // Handle preflight requests
     if (event.httpMethod === 'OPTIONS') {
-      return {
-        statusCode: 204,
-        headers
-      };
+      return { statusCode: 204, headers };
     }
 
     // Only allow POST requests
@@ -79,37 +139,24 @@ export const handler: Handler = async (event) => {
       throw new Error('At least one service must be selected');
     }
 
-    // Prepare data for Salesmate
-    const salesmateData = {
-      owner_id: 1,
-      first_name: leadData.firstName.trim(),
-      last_name: leadData.lastName.trim(),
-      company_name: leadData.company.trim(),
-      email: leadData.email.trim(),
-      description: `Message: ${leadData.message.trim()}\n\nServices of Interest:\n${leadData.services.join('\n')}`,
-      source: 'Website Contact Form',
-      status: 'New'
-    };
+    // Find or create company
+    let company = await findCompany(leadData.company);
+    if (!company) {
+      company = await createCompany(leadData.company);
+    }
 
-    // Send to Salesmate
-    const response = await axios.post(
-        `${SALESMATE_API_URL}/leads/add`,
-        salesmateData,
-        {
-          headers: {
-            'accesskey': ACCESS_KEY,
-            'secretkey': SECRET_KEY,
-            'Content-Type': 'application/json'
-          }
-        }
-    );
+    // Create contact/lead
+    const contact = await createContact(leadData, company.id);
 
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
         success: true,
-        data: response.data,
+        data: {
+          company,
+          contact
+        },
         redirectUrl: 'https://outlook.office365.com/owa/calendar/FullScopeDiscoveryCall@fullscopemsp.com/bookings/'
       })
     };
@@ -129,12 +176,16 @@ export const handler: Handler = async (event) => {
     }
 
     if (axios.isAxiosError(error)) {
+      const status = error.response?.status || 500;
+      const errorMessage = error.response?.data?.message || error.message;
+
       return {
-        statusCode: error.response?.status || 500,
+        statusCode: status,
         headers,
         body: JSON.stringify({
-          error: 'Failed to create lead in Salesmate',
-          details: error.response?.data || error.message
+          error: 'Failed to process lead',
+          details: errorMessage,
+          step: error.config?.url?.includes('company') ? 'company' : 'contact'
         })
       };
     }
