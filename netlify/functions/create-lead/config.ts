@@ -1,4 +1,4 @@
-export const SALESMATE_BASE_URL = 'https://fullscope.salesmate.io/apis';
+export const SALESMATE_BASE_URL = 'https://fullscopemsp.salesmate.io/apis';
 
 export const headers = {
   'Access-Control-Allow-Origin': '*',
