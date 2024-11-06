@@ -1,18 +1,9 @@
-import { Handler } from '@netlify/functions';
-import axios from 'axios';
+const { Handler } = require('@netlify/functions');
+const axios = require('axios');
 
 const SALESMATE_API_URL = 'https://fullscopemsp.salesmate.io/apis/v3';
 const ACCESS_KEY = process.env.SALESMATE_API_KEY;
 const SECRET_KEY = process.env.SALESMATE_SECRET_KEY;
-
-interface LeadData {
-  firstName: string;
-  lastName: string;
-  company: string;
-  email: string;
-  message: string;
-  services: string[];
-}
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -21,7 +12,7 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
-const validateLeadData = (data: any): data is LeadData => {
+const validateLeadData = (data) => {
   return (
     typeof data === 'object' &&
     typeof data.firstName === 'string' &&
@@ -33,7 +24,7 @@ const validateLeadData = (data: any): data is LeadData => {
   );
 };
 
-export const handler: Handler = async (event) => {
+exports.handler = async (event) => {
   console.log('Function invoked with event:', event);
 
   if (event.httpMethod === 'OPTIONS') {
@@ -68,7 +59,7 @@ export const handler: Handler = async (event) => {
       throw new Error('Request body is required');
     }
 
-    let leadData: LeadData;
+    let leadData;
     try {
       console.log('Parsing request body:', event.body);
       leadData = JSON.parse(event.body);
@@ -79,7 +70,7 @@ export const handler: Handler = async (event) => {
         headers,
         body: JSON.stringify({
           error: 'Invalid JSON format',
-          details: parseError instanceof Error ? parseError.message : 'Failed to parse request body'
+          details: parseError.message
         })
       };
     }
@@ -97,7 +88,7 @@ export const handler: Handler = async (event) => {
     }
 
     const requiredFields = ['firstName', 'lastName', 'company', 'email', 'message', 'services'];
-    const missingFields = requiredFields.filter(field => !leadData[field as keyof LeadData]);
+    const missingFields = requiredFields.filter(field => !leadData[field]);
 
     if (missingFields.length > 0) {
       console.error('Missing required fields:', missingFields);
@@ -174,7 +165,6 @@ export const handler: Handler = async (event) => {
     };
   } catch (error) {
     console.error('Error creating lead:', error);
-    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace available');
 
     if (axios.isAxiosError(error)) {
       console.error('Axios error response:', error.response?.data);
@@ -193,7 +183,7 @@ export const handler: Handler = async (event) => {
       headers,
       body: JSON.stringify({
         error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'An unexpected error occurred'
+        details: error.message
       })
     };
   }
