@@ -1,7 +1,7 @@
 import { Handler } from '@netlify/functions';
 import axios from 'axios';
 
-const SALESMATE_BASE_URL = 'https://fullscopemsp.salesmate.io/apis';
+const SALESMATE_BASE_URL = 'https://fullscope.salesmate.io/apis';
 const ACCESS_KEY = process.env.SALESMATE_API_KEY;
 const SECRET_KEY = process.env.SALESMATE_SECRET_KEY;
 
@@ -26,6 +26,12 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
+const salesmateHeaders = {
+  'accesskey': ACCESS_KEY,
+  'secretkey': SECRET_KEY,
+  'Content-Type': 'application/json'
+};
+
 const validateLeadData = (data: any): data is LeadData => {
   return (
       typeof data === 'object' &&
@@ -38,21 +44,55 @@ const validateLeadData = (data: any): data is LeadData => {
   );
 };
 
-const salesmateHeaders = {
-  'accesskey': ACCESS_KEY,
-  'secretkey': SECRET_KEY,
-  'Content-Type': 'application/json'
-};
-
 async function findCompany(companyName: string): Promise<SalesmateCompany | null> {
   try {
-    const response = await axios.get(
-        `${SALESMATE_BASE_URL}/company/v4/search?name=${encodeURIComponent(companyName)}`,
+    const searchPayload = {
+      displayingFields: [
+        "company.id",
+        "company.name",
+        "company.type",
+        "company.owner.id"
+      ],
+      filterQuery: {
+        group: {
+          operator: "AND",
+          rules: [
+            {
+              condition: "LIKE",
+              moduleName: "Company",
+              field: {
+                fieldName: "company.name",
+                displayName: "Company Name",
+                type: "Text"
+              },
+              data: companyName
+            }
+          ]
+        }
+      },
+      moduleId: 5,
+      reportType: "get_data",
+      getRecordsCount: true
+    };
+
+    const response = await axios.post(
+        `${SALESMATE_BASE_URL}/company/v4/search?rows=250&from=0`,
+        searchPayload,
         { headers: salesmateHeaders }
     );
 
-    const companies = response.data;
-    return companies.length > 0 ? companies[0] : null;
+    if (response.data && response.data.data && response.data.data.length > 0) {
+      const company = response.data.data.find((c: any) =>
+          c.name.toLowerCase() === companyName.toLowerCase()
+      );
+      if (company) {
+        return {
+          id: company.id,
+          name: company.name
+        };
+      }
+    }
+    return null;
   } catch (error) {
     console.error('Error searching for company:', error);
     return null;
@@ -60,31 +100,54 @@ async function findCompany(companyName: string): Promise<SalesmateCompany | null
 }
 
 async function createCompany(companyName: string): Promise<SalesmateCompany> {
+  const companyData = {
+    name: companyName,
+    owner: 1,
+    type: 'Lead',
+    billingAddressLine1: '',
+    billingCity: '',
+    billingState: '',
+    billingCountry: '',
+    billingZipCode: '',
+    phone: '',
+    website: '',
+    industry: '',
+    description: 'Lead generated from website contact form'
+  };
+
   const response = await axios.post(
       `${SALESMATE_BASE_URL}/company/v4`,
-      {
-        name: companyName,
-        owner: 1,
-        type: 'Lead'
-      },
+      companyData,
       { headers: salesmateHeaders }
   );
 
-  return response.data;
+  return {
+    id: response.data.id,
+    name: response.data.name
+  };
 }
 
 async function createContact(data: LeadData, companyId: number) {
   const contactData = {
-    firstName: data.firstName,
-    lastName: data.lastName,
-    email: data.email,
+    firstName: data.firstName.trim(),
+    lastName: data.lastName.trim(),
+    email: data.email.trim(),
     type: 'Lead',
     company: companyId,
     owner: 1,
-    description: data.message,
+    description: `Message: ${data.message.trim()}\n\nServices of Interest:\n${data.services.join('\n')}`,
     tags: data.services.join(','),
     emailOptOut: false,
-    smsOptOut: false
+    smsOptOut: false,
+    billingAddressLine1: '',
+    billingCity: '',
+    billingState: '',
+    billingCountry: '',
+    billingZipCode: '',
+    phone: '',
+    mobile: '',
+    designation: '',
+    source: 'Website Contact Form'
   };
 
   const response = await axios.post(
