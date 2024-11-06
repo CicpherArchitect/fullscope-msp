@@ -34,107 +34,52 @@ const validateLeadData = (data: any): data is LeadData => {
 };
 
 export const handler: Handler = async (event) => {
-  console.log('Function invoked with event:', event);
-
-  if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 204,
-      headers
-    };
-  }
-
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ error: 'Method not allowed' })
-    };
-  }
-
-  if (!ACCESS_KEY || !SECRET_KEY) {
-    console.error('Missing API credentials');
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({
-        error: 'Server configuration error',
-        details: 'Missing API credentials'
-      })
-    };
-  }
-
   try {
+    // Handle preflight requests
+    if (event.httpMethod === 'OPTIONS') {
+      return {
+        statusCode: 204,
+        headers
+      };
+    }
+
+    // Only allow POST requests
+    if (event.httpMethod !== 'POST') {
+      return {
+        statusCode: 405,
+        headers,
+        body: JSON.stringify({ error: 'Method not allowed' })
+      };
+    }
+
+    // Check for required environment variables
+    if (!ACCESS_KEY || !SECRET_KEY) {
+      throw new Error('Missing API credentials');
+    }
+
+    // Parse and validate request body
     if (!event.body) {
       throw new Error('Request body is required');
     }
 
-    let leadData: LeadData;
-    try {
-      console.log('Parsing request body:', event.body);
-      leadData = JSON.parse(event.body);
-    } catch (parseError) {
-      console.error('JSON parse error:', parseError);
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({
-          error: 'Invalid JSON format',
-          details: parseError instanceof Error ? parseError.message : 'Failed to parse request body'
-        })
-      };
-    }
+    const leadData: LeadData = JSON.parse(event.body);
 
     if (!validateLeadData(leadData)) {
-      console.error('Invalid data structure:', leadData);
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({
-          error: 'Invalid data format',
-          details: 'Request body missing required fields or has invalid types'
-        })
-      };
+      throw new Error('Invalid lead data format');
     }
 
-    const requiredFields = ['firstName', 'lastName', 'company', 'email', 'message', 'services'];
-    const missingFields = requiredFields.filter(field => !leadData[field as keyof LeadData]);
-
-    if (missingFields.length > 0) {
-      console.error('Missing required fields:', missingFields);
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({
-          error: 'Missing required fields',
-          details: `Missing: ${missingFields.join(', ')}`
-        })
-      };
-    }
-
+    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(leadData.email)) {
-      console.error('Invalid email format:', leadData.email);
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({
-          error: 'Invalid email format'
-        })
-      };
+      throw new Error('Invalid email format');
     }
 
+    // Validate services array
     if (!leadData.services.length) {
-      console.error('Empty services array');
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({
-          error: 'Services array is empty',
-          details: 'At least one service must be selected'
-        })
-      };
+      throw new Error('At least one service must be selected');
     }
 
+    // Prepare data for Salesmate
     const salesmateData = {
       owner_id: 1,
       first_name: leadData.firstName.trim(),
@@ -146,8 +91,7 @@ export const handler: Handler = async (event) => {
       status: 'New'
     };
 
-    console.log('Sending to Salesmate:', JSON.stringify(salesmateData, null, 2));
-
+    // Send to Salesmate
     const response = await axios.post(
         `${SALESMATE_API_URL}/leads/add`,
         salesmateData,
@@ -155,13 +99,10 @@ export const handler: Handler = async (event) => {
           headers: {
             'accesskey': ACCESS_KEY,
             'secretkey': SECRET_KEY,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            'Content-Type': 'application/json'
           }
         }
     );
-
-    console.log('Salesmate response:', response.data);
 
     return {
       statusCode: 200,
@@ -173,11 +114,21 @@ export const handler: Handler = async (event) => {
       })
     };
   } catch (error) {
-    console.error('Error creating lead:', error);
-    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace available');
+    console.error('Error processing request:', error);
+
+    // Handle specific error types
+    if (error instanceof SyntaxError) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: 'Invalid JSON format',
+          details: error.message
+        })
+      };
+    }
 
     if (axios.isAxiosError(error)) {
-      console.error('Axios error response:', error.response?.data);
       return {
         statusCode: error.response?.status || 500,
         headers,
@@ -188,6 +139,7 @@ export const handler: Handler = async (event) => {
       };
     }
 
+    // Generic error response
     return {
       statusCode: 500,
       headers,

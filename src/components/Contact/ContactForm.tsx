@@ -47,19 +47,19 @@ export function ContactForm() {
       setSubmitStatus('success');
       setFormData(initialFormData);
 
-      const redirectUrl = result.redirectUrl || '';
-      if (redirectUrl) {
+      // Redirect to booking page after success
+      if (result.redirectUrl) {
         setTimeout(() => {
-          window.location.href = redirectUrl;
+          window.location.href = result.redirectUrl;
         }, 1500);
       }
     } catch (error) {
-      console.error('Error submitting form:', error);
+      console.error('Form submission error:', error);
       setSubmitStatus('error');
       setErrorMessage(
-        error instanceof ApiError 
-          ? `${error.message}${error.details ? `: ${error.details}` : ''}`
-          : 'An unexpected error occurred. Please try again or contact us directly.'
+          error instanceof ApiError
+              ? `${error.message}${error.details ? `: ${error.details}` : ''}`
+              : 'An unexpected error occurred. Please try again or contact us directly.'
       );
     } finally {
       setIsSubmitting(false);
@@ -72,109 +72,109 @@ export function ContactForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-md">
-      <FormStatus status={submitStatus} message={errorMessage} />
-      
-      <div className="grid grid-cols-1 gap-6">
-        <div className="grid grid-cols-2 gap-4">
+      <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-md">
+        <FormStatus status={submitStatus} message={errorMessage} />
+
+        <div className="grid grid-cols-1 gap-6">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
+                First name
+              </label>
+              <input
+                  type="text"
+                  id="firstName"
+                  value={formData.firstName}
+                  onChange={handleInputChange}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-50"
+                  required
+                  disabled={isSubmitting}
+                  minLength={2}
+                  maxLength={50}
+              />
+            </div>
+            <div>
+              <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
+                Last name
+              </label>
+              <input
+                  type="text"
+                  id="lastName"
+                  value={formData.lastName}
+                  onChange={handleInputChange}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-50"
+                  required
+                  disabled={isSubmitting}
+                  minLength={2}
+                  maxLength={50}
+              />
+            </div>
+          </div>
+
           <div>
-            <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
-              First name
+            <label htmlFor="company" className="block text-sm font-medium text-gray-700">
+              Company Name
             </label>
             <input
-              type="text"
-              id="firstName"
-              value={formData.firstName}
-              onChange={handleInputChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-50"
-              required
-              disabled={isSubmitting}
-              minLength={2}
-              maxLength={50}
+                type="text"
+                id="company"
+                value={formData.company}
+                onChange={handleInputChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-50"
+                required
+                disabled={isSubmitting}
+                minLength={2}
+                maxLength={100}
             />
           </div>
+
           <div>
-            <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
-              Last name
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              Email
             </label>
             <input
-              type="text"
-              id="lastName"
-              value={formData.lastName}
-              onChange={handleInputChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-50"
-              required
-              disabled={isSubmitting}
-              minLength={2}
-              maxLength={50}
+                type="email"
+                id="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-50"
+                required
+                disabled={isSubmitting}
+                pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
             />
           </div>
-        </div>
 
-        <div>
-          <label htmlFor="company" className="block text-sm font-medium text-gray-700">
-            Company Name
-          </label>
-          <input
-            type="text"
-            id="company"
-            value={formData.company}
-            onChange={handleInputChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-50"
-            required
-            disabled={isSubmitting}
-            minLength={2}
-            maxLength={100}
+          <ServiceCheckboxes
+              selectedServices={formData.services}
+              onServicesChange={(services) => setFormData(prev => ({ ...prev, services }))}
+              disabled={isSubmitting}
           />
+
+          <div>
+            <label htmlFor="message" className="block text-sm font-medium text-gray-700">
+              Message
+            </label>
+            <textarea
+                id="message"
+                rows={4}
+                value={formData.message}
+                onChange={handleInputChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-50"
+                required
+                disabled={isSubmitting}
+                minLength={10}
+                maxLength={1000}
+            ></textarea>
+          </div>
+
+          <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full bg-blue-600 text-white py-3 px-6 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 transition-colors duration-200"
+          >
+            {isSubmitting ? 'Submitting...' : 'Let\'s Connect'}
+          </button>
         </div>
-
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-            Email
-          </label>
-          <input
-            type="email"
-            id="email"
-            value={formData.email}
-            onChange={handleInputChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-50"
-            required
-            disabled={isSubmitting}
-            pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
-          />
-        </div>
-
-        <ServiceCheckboxes
-          selectedServices={formData.services}
-          onServicesChange={(services) => setFormData(prev => ({ ...prev, services }))}
-          disabled={isSubmitting}
-        />
-
-        <div>
-          <label htmlFor="message" className="block text-sm font-medium text-gray-700">
-            Message
-          </label>
-          <textarea
-            id="message"
-            rows={4}
-            value={formData.message}
-            onChange={handleInputChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-50"
-            required
-            disabled={isSubmitting}
-            minLength={10}
-            maxLength={1000}
-          ></textarea>
-        </div>
-
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full bg-blue-600 text-white py-3 px-6 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 transition-colors duration-200"
-        >
-          {isSubmitting ? 'Submitting...' : 'Let\'s Connect'}
-        </button>
-      </div>
-    </form>
+      </form>
   );
 }
