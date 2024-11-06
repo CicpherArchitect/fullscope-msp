@@ -23,13 +23,13 @@ const headers = {
 
 const validateLeadData = (data: any): data is LeadData => {
   return (
-    typeof data === 'object' &&
-    typeof data.firstName === 'string' &&
-    typeof data.lastName === 'string' &&
-    typeof data.company === 'string' &&
-    typeof data.email === 'string' &&
-    typeof data.message === 'string' &&
-    Array.isArray(data.services)
+      typeof data === 'object' &&
+      typeof data.firstName === 'string' &&
+      typeof data.lastName === 'string' &&
+      typeof data.company === 'string' &&
+      typeof data.email === 'string' &&
+      typeof data.message === 'string' &&
+      Array.isArray(data.services)
   );
 };
 
@@ -37,9 +37,9 @@ export const handler: Handler = async (event) => {
   console.log('Function invoked with event:', event);
 
   if (event.httpMethod === 'OPTIONS') {
-    return { 
-      statusCode: 204, 
-      headers 
+    return {
+      statusCode: 204,
+      headers
     };
   }
 
@@ -56,7 +56,7 @@ export const handler: Handler = async (event) => {
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         error: 'Server configuration error',
         details: 'Missing API credentials'
       })
@@ -149,16 +149,16 @@ export const handler: Handler = async (event) => {
     console.log('Sending to Salesmate:', JSON.stringify(salesmateData, null, 2));
 
     const response = await axios.post(
-      `${SALESMATE_API_URL}/leads/add`,
-      salesmateData,
-      {
-        headers: {
-          'accesskey': ACCESS_KEY,
-          'secretkey': SECRET_KEY,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
+        `${SALESMATE_API_URL}/leads/add`,
+        salesmateData,
+        {
+          headers: {
+            'accesskey': ACCESS_KEY,
+            'secretkey': SECRET_KEY,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
         }
-      }
     );
 
     console.log('Salesmate response:', response.data);

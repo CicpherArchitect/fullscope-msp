@@ -1,9 +1,10 @@
 {
   "name": "create-lead-function",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "index.ts",
   "dependencies": {
     "@netlify/functions": "^2.6.0",
-    "axios": "^1.6.7"
+    "axios": "^1.6.7",
+    "typescript-eslint": "^8.13.0"
   }
 }
