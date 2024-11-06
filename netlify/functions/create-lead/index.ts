@@ -22,11 +22,10 @@ export const handler: Handler = async (event) => {
     }
 
     // Check for required environment variables
-    const accessKey = process.env.SALESMATE_API_KEY;
-    const secretKey = process.env.SALESMATE_SECRET_KEY;
+    const sessionToken = process.env.SALESMATE_SESSION_TOKEN;
     
-    if (!accessKey || !secretKey) {
-      throw new Error('Missing API credentials');
+    if (!sessionToken) {
+      throw new Error('Missing Salesmate session token');
     }
 
     // Parse and validate request body
@@ -48,7 +47,7 @@ export const handler: Handler = async (event) => {
       throw new Error('At least one service must be selected');
     }
 
-    const salesmateHeaders = getSalesmateHeaders(accessKey, secretKey);
+    const salesmateHeaders = getSalesmateHeaders(sessionToken);
 
     // Find or create company
     let company = await findCompany(leadData.company, salesmateHeaders);

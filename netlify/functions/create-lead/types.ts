@@ -13,7 +13,7 @@ export interface SalesmateCompany {
 }
 
 export interface SalesmateHeaders {
-  accesskey: string | undefined;
-  secretkey: string | undefined;
   'Content-Type': string;
+  'accessToken': string | undefined;
+  'x-linkname': string;
 }

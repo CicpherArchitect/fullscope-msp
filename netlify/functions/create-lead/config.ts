@@ -7,8 +7,8 @@ export const headers = {
   'Content-Type': 'application/json'
 };
 
-export const getSalesmateHeaders = (accessKey?: string, secretKey?: string) => ({
-  accesskey: accessKey,
-  secretkey: secretKey,
-  'Content-Type': 'application/json'
+export const getSalesmateHeaders = (sessionToken?: string) => ({
+  'Content-Type': 'application/json',
+  'accessToken': sessionToken,
+  'x-linkname': 'fullscopemsp'
 });

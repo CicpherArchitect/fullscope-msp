@@ -53,7 +53,7 @@ export async function findCompany(companyName: string, headers: SalesmateHeaders
     return null;
   } catch (error) {
     console.error('Error searching for company:', error);
-    return null;
+    throw error;
   }
 }
 
