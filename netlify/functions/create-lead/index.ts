@@ -1,7 +1,7 @@
 import { Handler } from '@netlify/functions';
 import axios from 'axios';
 
-const SALESMATE_API_URL = 'https://fullscopemsp.salesmate.io/apis/v3';
+const SALESMATE_API_URL = 'https://fullscopemsp.salesmate.io/apis/v4';
 const ACCESS_KEY = process.env.SALESMATE_API_KEY;
 const SECRET_KEY = process.env.SALESMATE_SECRET_KEY;
 
