@@ -23,7 +23,7 @@ export const handler: Handler = async (event) => {
 
     // Check for required environment variables
     const sessionToken = process.env.SALESMATE_SESSION_TOKEN;
-    
+
     if (!sessionToken) {
       throw new Error('Missing Salesmate session token');
     }
@@ -49,31 +49,36 @@ export const handler: Handler = async (event) => {
 
     const salesmateHeaders = getSalesmateHeaders(sessionToken);
 
-    // Find or create company
-    let company = await findCompany(leadData.company, salesmateHeaders);
-    if (!company) {
-      company = await createCompany(leadData.company, salesmateHeaders);
+    try {
+      // Find or create company
+      let company = await findCompany(leadData.company, salesmateHeaders);
+
+      if (!company) {
+        company = await createCompany(leadData.company, salesmateHeaders);
+      }
+
+      // Create contact/lead
+      const contact = await createContact(leadData, company.id, salesmateHeaders);
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          data: {
+            company,
+            contact
+          },
+          redirectUrl: 'https://outlook.office365.com/owa/calendar/FullScopeDiscoveryCall@fullscopemsp.com/bookings/'
+        })
+      };
+    } catch (apiError) {
+      console.error('Salesmate API error:', apiError.response?.data || apiError);
+      throw new Error(apiError.response?.data?.message || 'Failed to process lead in Salesmate');
     }
-
-    // Create contact/lead
-    const contact = await createContact(leadData, company.id, salesmateHeaders);
-
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({
-        success: true,
-        data: {
-          company,
-          contact
-        },
-        redirectUrl: 'https://outlook.office365.com/owa/calendar/FullScopeDiscoveryCall@fullscopemsp.com/bookings/'
-      })
-    };
   } catch (error) {
     console.error('Error processing request:', error);
 
-    // Handle specific error types
     if (error instanceof SyntaxError) {
       return {
         statusCode: 400,
@@ -85,27 +90,11 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    if (axios.isAxiosError(error)) {
-      const status = error.response?.status || 500;
-      const errorMessage = error.response?.data?.message || error.message;
-      
-      return {
-        statusCode: status,
-        headers,
-        body: JSON.stringify({
-          error: 'Failed to process lead',
-          details: errorMessage,
-          step: error.config?.url?.includes('company') ? 'company' : 'contact'
-        })
-      };
-    }
-
-    // Generic error response
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({
-        error: 'Internal server error',
+        error: 'Failed to process lead',
         details: error instanceof Error ? error.message : 'An unexpected error occurred'
       })
     };
