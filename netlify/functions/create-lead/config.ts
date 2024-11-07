@@ -10,5 +10,6 @@ export const headers = {
 export const getSalesmateHeaders = (sessionToken?: string) => ({
   'Content-Type': 'application/json',
   'accessToken': sessionToken,
-  'x-linkname': 'fullscopemsp.salesmate.io'
+  'x-linkname': 'fullscopemsp.salesmate.io',
+  'Accept': 'application/json'
 });

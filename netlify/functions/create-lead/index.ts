@@ -23,28 +23,64 @@ export const handler: Handler = async (event) => {
 
     // Check for required environment variables
     const sessionToken = process.env.SALESMATE_SESSION_TOKEN;
-
+    
     if (!sessionToken) {
-      throw new Error('Missing Salesmate session token');
+      console.error('Missing Salesmate session token');
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ 
+          error: 'Server configuration error',
+          details: 'Missing API credentials'
+        })
+      };
     }
 
     // Parse and validate request body
     if (!event.body) {
-      throw new Error('Request body is required');
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Request body is required' })
+      };
     }
 
-    const leadData: LeadData = JSON.parse(event.body);
+    let leadData: LeadData;
+    try {
+      leadData = JSON.parse(event.body);
+    } catch (parseError) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: 'Invalid JSON format',
+          details: parseError instanceof Error ? parseError.message : 'Failed to parse request body'
+        })
+      };
+    }
 
     if (!validateLeadData(leadData)) {
-      throw new Error('Invalid lead data format');
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Invalid lead data format' })
+      };
     }
 
     if (!validateEmail(leadData.email)) {
-      throw new Error('Invalid email format');
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Invalid email format' })
+      };
     }
 
     if (!validateServices(leadData.services)) {
-      throw new Error('At least one service must be selected');
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'At least one service must be selected' })
+      };
     }
 
     const salesmateHeaders = getSalesmateHeaders(sessionToken);
@@ -52,7 +88,7 @@ export const handler: Handler = async (event) => {
     try {
       // Find or create company
       let company = await findCompany(leadData.company, salesmateHeaders);
-
+      
       if (!company) {
         company = await createCompany(leadData.company, salesmateHeaders);
       }
@@ -74,27 +110,24 @@ export const handler: Handler = async (event) => {
       };
     } catch (apiError) {
       console.error('Salesmate API error:', apiError.response?.data || apiError);
-      throw new Error(apiError.response?.data?.message || 'Failed to process lead in Salesmate');
-    }
-  } catch (error) {
-    console.error('Error processing request:', error);
-
-    if (error instanceof SyntaxError) {
+      
       return {
-        statusCode: 400,
+        statusCode: apiError.response?.status || 500,
         headers,
         body: JSON.stringify({
-          error: 'Invalid JSON format',
-          details: error.message
+          error: 'Failed to process lead in Salesmate',
+          details: apiError.response?.data?.Error?.message || apiError.message
         })
       };
     }
+  } catch (error) {
+    console.error('Error processing request:', error);
 
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({
-        error: 'Failed to process lead',
+        error: 'Internal server error',
         details: error instanceof Error ? error.message : 'An unexpected error occurred'
       })
     };
